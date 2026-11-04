@@ -34,3 +34,10 @@ demo/**/*.wav
 demo/final/build/
 *.tgz
 node_modules/
+
+# weights binaries: local only, see weights/WEIGHTS.md
+weights/**/*.safetensors
+weights/**/tokenizer.json
+weights/**/model*.pt
+weights/**/*.pt
+remotion-video/public/
