@@ -201,7 +201,12 @@ def test_temperature_fit_reports_whether_it_hit_the_bound():
     p = rng.uniform(0.2, 0.8, n)
     y = (rng.uniform(0, 1, n) < p).astype(float)
     info = metrics.fit_temperature_info(p, y)
-    assert set(info) == {"T", "nll", "at_bound"}
+    # at_ceiling / at_floor distinguish WHICH bound was hit, and brier is
+    # carried for a temperature-independent comparison. Hitting the ceiling and
+    # hitting the floor mean opposite things about the model, so one boolean was
+    # not enough to report.
+    assert set(info) == {"T", "nll", "at_bound", "at_ceiling", "at_floor",
+                         "brier"}
     assert metrics.TEMP_MIN < info["T"] < metrics.TEMP_MAX
     assert info["at_bound"] is False
 
@@ -321,3 +326,61 @@ def test_memorisation_gap_reports_the_components_not_just_a_flag():
     gap = metrics.memorisation_gap(p, y, p, y)
     for k in ("kl_train", "kl_test", "kl_gap", "acc_train", "acc_test", "flagged"):
         assert k in gap, k
+
+
+def test_ceiling_pin_means_the_probability_LEVEL_is_wrong_not_the_search_range():
+    """The baseline's central diagnostic, pinned as a property.
+
+    T pinning at the ceiling is NOT a search-range bug (the ceiling was already
+    raised once, 20 -> 200, and it pinned again). It happens when predicted
+    probabilities sit systematically BELOW the base rate: flattening toward 0.5
+    then improves log-loss monotonically, so the optimiser runs to the bound.
+
+    The consequence is the important part. Temperature can only pull predictions
+    toward 0.5. If the truth is a base rate of 0.60 or 0.70, temperature can
+    never reach it -- so no temperature fixes a level error. The remedy is an
+    intercept (prior/threshold) correction, which acts on level rather than
+    spread.
+
+    Two of my own attempts to write this test failed first: timid-but-centred
+    probabilities pin at the FLOOR (they carry real magnitude), and
+    level-shifted probabilities with real order converge normally. Only a wrong
+    LEVEL with weak order reaches the ceiling.
+    """
+    import numpy as np
+    import metrics
+
+    rng = np.random.default_rng(2)
+    n = 1000
+    y = (rng.random(n) < 0.70).astype(float)        # high base rate
+    p = np.full(n, 0.30)                            # level far below it
+    info = metrics.fit_temperature_info(p, y)
+    assert info["at_ceiling"], "a low-biased level should pin T at the ceiling"
+
+    # the mechanism: nll improves monotonically with flattening, never turning
+    nlls = []
+    for t in (1, 5, 50, 200):
+        q = np.clip(metrics.apply_temperature(p, t), 1e-9, 1 - 1e-9)
+        nlls.append(-np.mean(y * np.log(q) + (1 - y) * np.log(1 - q)))
+    # nll DECREASES as temperature rises (flattening improves log-loss)
+    assert nlls == sorted(nlls, reverse=True), \
+        f"flattening should improve monotonically: {nlls}"
+
+    # and temperature cannot reach the base rate, so it cannot repair level
+    flat = metrics.apply_temperature(p, 1e6)
+    assert flat.mean() < 0.70
+
+
+def test_at_ceiling_and_at_floor_are_not_the_same_finding():
+    """Both bound hits are violations of a converged fit, but they mean opposite
+    things and must not be reported as one boolean."""
+    import numpy as np
+    import metrics
+
+    rng = np.random.default_rng(5)
+    y = (rng.random(300) < 0.5).astype(float)
+    # overconfident: magnitudes far too large -> optimum at the floor
+    hot = np.clip(0.5 + 0.45 * np.sign(y - 0.5) + rng.normal(0, 0.02, 300),
+                  1e-4, 1 - 1e-4)
+    hi = metrics.fit_temperature_info(hot, y)
+    assert hi["at_floor"] and not hi["at_ceiling"]

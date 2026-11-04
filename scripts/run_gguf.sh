@@ -4,9 +4,9 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=01:30:00
-#SBATCH --job-name=jevgguf
+#SBATCH --job-name=janusgguf
 #SBATCH --exclude=gpuk001,gpuk002,gpuk003,gpuk004,gpuk005,gpuk006,gpuk007,gpuk008,gpuk009,gpuk010,gpuk011,gpuk012,gpuk013,gpuk014,gpuk015,gpuk016,gpuk017,gpuk018
-#SBATCH --output=/scratch/ad2416/jevgguf.out
+#SBATCH --output=/scratch/ad2416/janusgguf.out
 # Produce the Q4_K_M GGUF that llama-server serves and that the goal names.
 #
 # Q4_K_M only, never Q2: below 4 bits the quantisation noise swamps the very
@@ -24,8 +24,8 @@ mkdir -p "$OUT" || exit 1
 
 MERGED=${MERGED:-/scratch/ad2416/llama-1b-merged}
 if [ ! -f "$MERGED/config.json" ]; then
-  /scratch/ad2416/venv-torch/bin/python -u /scratch/ad2416/jevsrc/merge_adapter.py \
-    --adapter /scratch/ad2416/jevout-fix/adapter_seed0 \
+  /scratch/ad2416/venv-torch/bin/python -u /scratch/ad2416/janussrc/merge_adapter.py \
+    --adapter /scratch/ad2416/janusout-fix/adapter_seed0 \
     --out "$MERGED" || exit 2
 fi
 

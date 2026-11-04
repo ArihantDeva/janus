@@ -11,7 +11,7 @@
 # projected runtime is ~3.8h. The wall clock is 8h and checkpoints land every 50
 # steps: the first attempt used 4h with a save ONLY on the final step, which
 # would have timed out ~3 minutes before saving and destroyed the run.
-export JEV_DATA=/scratch/ad2416/jevdata
-export JEV_OUT=/scratch/ad2416/jevout-glimmer
+export JANUS_DATA=/scratch/ad2416/janusdata
+export JANUS_OUT=/scratch/ad2416/janusout-glimmer
 export HF_HOME=/scratch/ad2416/hf
-exec /scratch/ad2416/venv-glimmer/bin/python -u /scratch/ad2416/jevsrc/train_glimmer.py --seed 0 --epochs 1 --ckpt-every 50
+exec /scratch/ad2416/venv-glimmer/bin/python -u /scratch/ad2416/janussrc/train_glimmer.py --seed 0 --epochs 1 --ckpt-every 50

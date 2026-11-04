@@ -24,7 +24,7 @@ import os
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.environ.get("JEV_DATA", os.path.join(ROOT, "data"))
+DATA = os.environ.get("JANUS_DATA", os.path.join(ROOT, "data"))
 
 KARANXA = ("https://huggingface.co/datasets/karanxa/"
            "agent-action-safety-dataset/resolve/main/{split}.jsonl")
@@ -34,7 +34,7 @@ LINUXARENA = ("https://huggingface.co/datasets/eval-aware/"
 
 
 def get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "jevlab"})
+    req = urllib.request.Request(url, headers={"User-Agent": "januslab"})
     with urllib.request.urlopen(req, timeout=180) as r:
         return r.read()
 

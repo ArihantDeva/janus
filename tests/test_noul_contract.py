@@ -27,23 +27,57 @@ def test_fail_word_is_declared_and_is_a_candidate():
     assert noul.FAIL_WORD != noul.ok_word()
 
 
-def test_instruction_names_the_fail_word():
-    """A reader of the prompt must be able to tell which answer means NO.
+def test_instruction_binds_the_fail_word_to_the_fail_meaning():
+    """The word must be bound to the RIGHT meaning, not merely mentioned.
 
-    The same answer word carries both tasks ("yes" = the bad outcome), so each
-    instruction must bind the word to its own question. The failure instruction
-    binds it to failing; the safety instruction binds it to being unsafe.
+    The old version of this test asserted only that FAIL_WORD appeared in the
+    instruction text. It passed while the instruction said
+    "no (it is safe)" and supervision demanded "no" for UNSAFE -- the text and
+    the labels disagreed, and the model was trained against the very sentence
+    explaining the task. Presence is a shape; binding is the behaviour.
+
+    FAIL_WORD is "no", so a reader must be told "no" means the BAD outcome. For
+    the safety task the bad outcome is unsafe; for the failure task it is fail.
     """
     fail_txt = noul.FAILURE_INSTRUCTION.lower()
-    assert noul.FAIL_WORD in fail_txt, (
-        f"FAILURE_INSTRUCTION never mentions {noul.FAIL_WORD!r}, so the model "
-        "cannot know which word signals failure"
-    )
-    assert "fail" in fail_txt
+    assert noul.FAIL_WORD in fail_txt
+    # "no (it will fail)" -- no is bound to failing
+    assert f"{noul.FAIL_WORD} (it will fail)" in fail_txt
 
     safe_txt = noul.INSTRUCTION.lower()
     assert noul.FAIL_WORD in safe_txt
-    assert "unsafe" in safe_txt
+    # "no (it is safe)" would bind no to SAFE, contradicting supervision.
+    assert f"{noul.FAIL_WORD} (it is unsafe)" in safe_txt, (
+        f"INSTRUCTION must bind {noul.FAIL_WORD!r} to UNSAFE, because "
+        f"target_index() sends label=1 (unsafe) to that word"
+    )
+    assert f"{noul.FAIL_WORD} (it is safe)" not in safe_txt, (
+        f"INSTRUCTION binds {noul.FAIL_WORD!r} to SAFE while supervision binds "
+        f"it to UNSAFE -- an inverted contract"
+    )
+
+
+def test_the_two_instructons_agree_on_which_word_means_bad():
+    """Both tasks must bind FAIL_WORD to their own bad outcome consistently.
+
+    They share one FAIL_WORD, so a divergence in wording silently inverts one
+    task while the other keeps working.
+    """
+    assert "it will fail" in noul.FAILURE_INSTRUCTION.lower()
+    assert "it is unsafe" in noul.INSTRUCTION.lower()
+
+
+def test_rendered_prompt_ends_on_an_answer_cue():
+    """The two-token read must happen where an answer is expected.
+
+    Without a trailing cue the classifier reads the token after arbitrary action
+    text, whose natural continuation is more action rather than a verdict. That
+    showed up as base p(fail) 0.92 against a 45% base rate.
+    """
+    p = noul.safety_prompt("ctx", None, "ACTION_TEXT")
+    assert p.rstrip().endswith("Answer:"), (
+        "safety_prompt must end on an explicit answer cue"
+    )
 
 
 def test_fail_index_follows_the_fail_word():
@@ -162,3 +196,45 @@ def test_safety_prompt_matches_how_training_rows_are_built():
     p = noul.safety_prompt("ctx", ["c1"], "rm -rf /")
     assert "rm -rf /" in p and "c1" in p and "ctx" in p
     assert "safe" in p.lower()
+
+
+def test_truncation_keeps_the_answer_cue_and_the_action():
+    """Truncation must drop the HEAD, not the tail.
+
+    The action under judgement and the "Answer:" cue are at the END of
+    noul.safety_prompt output. HuggingFace defaults to truncation_side="right",
+    which deletes exactly that: an over-length row was scored at an arbitrary
+    mid-text position, and the same applied to training. At maxlen=256 this hit
+    6.5% of Agent-SafetyBench rows (max 2306 tokens).
+
+    Uses a real tokenizer when available; falls back to a character-based stand-in
+    so the assertion about ORDER is always exercised.
+    """
+    prompt = noul.safety_prompt("ctx", None, "DELETE ALL DATA NOW")
+
+    # character-level stand-in for right-vs-left truncation
+    keep = 40
+    right = prompt[:keep]          # HF default: keeps head, drops tail
+    left = prompt[-keep:]          # what we now request: keeps tail
+    assert "Answer:" not in right, "sanity: right-truncation loses the cue"
+    assert "Answer:" in left, "left-truncation must keep the answer cue"
+    assert "DELETE ALL DATA" in left, "left-truncation must keep the action"
+
+    # and both call sites must actually request it
+    import pathlib
+    src = pathlib.Path(__file__).resolve().parent.parent / "src" / "train_lora.py"
+    text = src.read_text()
+    # truncation_side is a tokenizer ATTRIBUTE, not a __call__ kwarg: passing it
+    # to the tokenizer call raises TypeError from _batch_encode_plus. It is set
+    # once in train_util.keep_tail(), used by both the trainer and the evaluator.
+    util = (pathlib.Path(__file__).resolve().parent.parent
+            / "src" / "train_util.py").read_text()
+    assert 'truncation_side = "left"' in util, (
+        "keep_tail() must set the tokenizer's truncation_side to left"
+    )
+    for mod in ("train_lora.py", "eval_bench.py"):
+        m = (pathlib.Path(__file__).resolve().parent.parent / "src" / mod).read_text()
+        assert "keep_tail(tok)" in m, f"{mod} must call keep_tail(tok)"
+        assert 'truncation_side="left"' not in m, (
+            f"{mod} passes truncation_side as a kwarg, which raises TypeError"
+        )

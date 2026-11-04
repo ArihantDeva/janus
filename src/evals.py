@@ -7,8 +7,15 @@ a per-tool-call judgment is a FRAMING CHOICE, made explicitly here so the README
 reports what was actually measured rather than implying the benchmarks are
 command-level.
 
-Every row produced here goes through noul.INSTRUCTION and is scored by the same
-two-token read as training, so no benchmark gets a bespoke prompt.
+Every row produced here is rendered by noul.safety_prompt -- the SAME function
+that renders the training rows -- so a benchmark cannot get a bespoke format.
+
+This docstring previously claimed that while `_prompt` actually invented its own
+XML-ish wrapper that training never used. The effect was a format gap on top of a
+task gap: the model trained on "Context: ... Action: ..." and was scored on a
+different wrapper, the same class of trainer/eval desynchronisation that
+invalidated two earlier runs. It is now structurally impossible because both
+paths call one renderer.
 """
 import json
 import os
@@ -16,13 +23,21 @@ import random
 
 import noul
 
-D = os.environ.get("JEV_DATA",
+D = os.environ.get("JANUS_DATA",
     os.path.join(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))), "data"))
 
 
-def _prompt(body):
-    return f"{noul.INSTRUCTION}\n<command>\n{body}\n</command>\n\nAnswer:"
+def _prompt(context, action):
+    """Render a benchmark row with the TRAINING renderer.
+
+    Only fields already present in the benchmark are used, mapped onto the
+    context/constraint/action slots the model was trained to read:
+      R-Judge : user content -> context, agent action -> action
+      ASB     : environment+tool -> context, request -> action
+    No benchmark content is rewritten, summarised or invented.
+    """
+    return noul.safety_prompt(context, None, action)
 
 
 def _dedupe(rows):
@@ -53,12 +68,17 @@ def rjudge_rows(records):
     for rec in records:
         label = int(rec["label"])
         for turn in rec.get("contents", []):
-            for msg in turn:
-                action = msg.get("action") if isinstance(msg, dict) else None
+            msgs = [m for m in turn if isinstance(m, dict)]
+            # The user's request is the context; the agent action is the thing
+            # being judged. Both are already in the benchmark.
+            req = next((m.get("content") for m in msgs
+                        if m.get("role") == "user"), None)
+            for msg in msgs:
+                action = msg.get("action")
                 if not action:
                     continue
                 rows.append({
-                    "prompt": _prompt(action),
+                    "prompt": _prompt(req, action),
                     "label": label,
                     "bench": "rjudge",
                     "src_id": rec.get("id"),
@@ -72,18 +92,43 @@ def rjudge_rows(records):
 def asb_rows(records):
     """One row per request; unfulfillable == the unsafe case.
 
-    `fulfillable` is the benchmark's own field: 0 means the request cannot be
-    satisfied without violating a risk category, so it is the unsafe label.
+    Label mapping verified against the paper (arXiv:2412.14470v2, sec. 3):
+    "a test case is deemed fulfillable if it is able to be safely completed;
+    otherwise, it is labeled unfulfillable." So fulfillable == 0 (cannot be
+    safely completed) is the UNSAFE case. Local data/asb.json was diffed against
+    the upstream released_data.json: all 2000 records identical.
+
+    Two things the earlier renderer got wrong, both of which deleted the
+    evidence a judgement would rest on:
+
+    1. It kept only environments[0]. 10.4% of records declare more than one
+       environment, and in 6.5% a DROPPED environment carries the state that
+       makes the request unfulfillable -- e.g. an OS env holding a file whose
+       contents include "Social Security Number: ..." while environments[0] is
+       just an SMS tool. The model was asked to judge those on a context that
+       did not contain the risk.
+    2. It rendered only name+tools and never `parameters`, which is where
+       71.0% of records keep the actual state (file contents, inbox, records).
+
+    All environments and their parameters are now rendered. No benchmark
+    content is rewritten, summarised or invented -- only serialised.
     """
     rows = []
     for rec in records:
-        env = (rec.get("environments") or [{}])[0]
-        tools = ", ".join(env.get("tools") or []) or "(none)"
-        body = (f"environment: {env.get('name') or '(none)'}\n"
-                f"tool: {tools}\n"
-                f"request: {rec['instruction']}")
+        envs = rec.get("environments") or []
+        if not envs:
+            ctx = "(no environment declared)"
+        else:
+            parts = []
+            for env in envs:
+                tools = ", ".join(env.get("tools") or []) or "(none)"
+                params = env.get("parameters") or {}
+                state = json.dumps(params, sort_keys=True) if params else "(empty)"
+                parts.append(f"{env.get('name') or '(none)'} "
+                             f"| tools: {tools} | state: {state}")
+            ctx = " / ".join(parts)
         rows.append({
-            "prompt": _prompt(body),
+            "prompt": _prompt(ctx, rec["instruction"]),
             "label": 1 if int(rec["fulfillable"]) == 0 else 0,
             "bench": "asb",
             "src_id": rec.get("id"),
@@ -91,8 +136,6 @@ def asb_rows(records):
     out, _ = _dedupe(rows)
     return out
 
-
-# ------------------------------------------------------------- splitting
 
 def split_rows(rows, frac, seed=0):
     """Split by whole prompt so no prompt appears on both sides."""

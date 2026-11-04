@@ -10,7 +10,7 @@ Grouping is by prompt text, which is the thing the model actually sees.
 import argparse, json, os, random, sys
 from collections import Counter
 
-D = os.environ.get("JEV_DATA",
+D = os.environ.get("JANUS_DATA",
     os.path.join(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))), "data"))
 

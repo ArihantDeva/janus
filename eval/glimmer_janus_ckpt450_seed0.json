@@ -1,0 +1,27 @@
+{
+  "model": "meta-models/Muse-Glimmer-30B",
+  "seed": 0,
+  "zero_shot": null,
+  "qlora": {
+    "acc": 0.2407624633431085,
+    "ece": 0.009239742028748194,
+    "per": {
+      "debug": [
+        821,
+        1.0
+      ],
+      "fix_input": [
+        660,
+        0.0
+      ],
+      "fix_call": [
+        1797,
+        0.0
+      ],
+      "retry_wait": [
+        132,
+        0.0
+      ]
+    }
+  }
+}

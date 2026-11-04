@@ -1,0 +1,29 @@
+{
+  "name": "@arihantdeva/janus",
+  "version": "1.0.0",
+  "description": "Janus: calibrated, non-autoregressive tool-call failure verdicts for Muse. One forward pass, typed decision (debug / fix_input / fix_call), exit-code guard CLI, Muse plugin.",
+  "license": "MIT",
+  "author": "Arihant Deva",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArihantDeva/janus.git"
+  },
+  "homepage": "https://github.com/ArihantDeva/janus",
+  "keywords": ["muse", "muse-code", "agent", "tool-call", "guard", "classifier", "janus"],
+  "type": "module",
+  "bin": {
+    "janus": "bin/janus.js"
+  },
+  "files": [
+    "bin/",
+    "plugin/",
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node bin/janus.js guard --no-model \"rm -rf /usr\"; test $? -eq 3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

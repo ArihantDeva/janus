@@ -23,7 +23,7 @@ CANDIDATES = (
 )
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.environ.get("JEV_DATA", os.path.join(ROOT, "data"))
+DATA = os.environ.get("JANUS_DATA", os.path.join(ROOT, "data"))
 OUT = os.path.join(DATA, "asb.json")
 
 

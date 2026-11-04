@@ -20,7 +20,7 @@ DATASETS = [
 ]
 API = ("https://datasets-server.huggingface.co/rows"
        "?dataset={ds}&config={cfg}&split={sp}&offset={off}&length={n}")
-DATA = os.environ.get("JEV_DATA", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"))
+DATA = os.environ.get("JANUS_DATA", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"))
 OUT = os.path.join(DATA, "swe_pairs.jsonl")
 
 

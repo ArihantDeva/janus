@@ -140,5 +140,5 @@ def test_trainer_can_target_the_safety_corpus_without_editing_code():
     import pathlib
     src = (pathlib.Path(__file__).resolve().parent.parent
            / "src" / "train_lora.py").read_text()
-    assert "JEV_CORPUS" in src
+    assert "JANUS_CORPUS" in src
     assert 'f"{D}/{CORPUS}_{split}.jsonl"' in src

@@ -5,11 +5,17 @@ out/
 *.safetensors
 adapter_*/
 
-# data is rebuilt from source, never committed
+# data is rebuilt from source, never committed.
+# NOTE the `**`: the previous patterns (`data/*.jsonl`) matched ONE level only, so
+# `data/responses/*.jsonl` was silently committed -- which is how two real-looking
+# API keys ended up in git. Depth-limited ignore patterns fail open.
+data/**/*.jsonl
+data/**/*.json
+data/**/*.parquet
+data/_*
 data/*.jsonl
 data/*.json
 data/*.parquet
-data/_*
 !data/.gitkeep
 
 # scratch
@@ -20,3 +26,11 @@ __pycache__/
 venv/
 rescore.json
 eval.json
+
+# demo media + npm tarballs (2026-11-04)
+demo/**/*.mp4
+demo/**/*.cast
+demo/**/*.wav
+demo/final/build/
+*.tgz
+node_modules/

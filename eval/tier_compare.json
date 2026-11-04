@@ -1,0 +1,81 @@
+{
+ "n": 12,
+ "tier_agreement": 0.5,
+ "local_ms_p50": 988.7,
+ "frontier_ms_p50": 4071.0,
+ "frontier_reasoning_tokens_p50": 776,
+ "rows": [
+  {
+   "local": "fix_input",
+   "frontier": "fix_call",
+   "local_ms": 12731.0,
+   "frontier_ms": 2997.0
+  },
+  {
+   "local": "fix_input",
+   "frontier": "fix_input",
+   "local_ms": 11174.0,
+   "frontier_ms": 3838.0
+  },
+  {
+   "local": "fix_input",
+   "frontier": "fix_input",
+   "local_ms": 4718.0,
+   "frontier_ms": 3620.0
+  },
+  {
+   "local": "debug",
+   "frontier": null,
+   "local_ms": 989.0,
+   "frontier_ms": 5022.0
+  },
+  {
+   "local": "fix_call",
+   "frontier": null,
+   "local_ms": 840.0,
+   "frontier_ms": 7540.0
+  },
+  {
+   "local": "debug",
+   "frontier": "debug",
+   "local_ms": 864.0,
+   "frontier_ms": 4071.0
+  },
+  {
+   "local": "fix_input",
+   "frontier": "fix_call",
+   "local_ms": 1196.0,
+   "frontier_ms": 1730.0
+  },
+  {
+   "local": "debug",
+   "frontier": "debug",
+   "local_ms": 924.0,
+   "frontier_ms": 3356.0
+  },
+  {
+   "local": "fix_input",
+   "frontier": "debug",
+   "local_ms": 782.0,
+   "frontier_ms": 4439.0
+  },
+  {
+   "local": "debug",
+   "frontier": "fix_call",
+   "local_ms": 818.0,
+   "frontier_ms": 2647.0
+  },
+  {
+   "local": "fix_input",
+   "frontier": "debug",
+   "local_ms": 802.0,
+   "frontier_ms": 7302.0
+  },
+  {
+   "local": "debug",
+   "frontier": "debug",
+   "local_ms": 1090.0,
+   "frontier_ms": 4676.0
+  }
+ ]
+}

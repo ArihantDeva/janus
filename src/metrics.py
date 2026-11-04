@@ -36,6 +36,23 @@ def ece(p, y, bins=15):
     return float(total)
 
 
+def auc(p, y):
+    """Probability an unsafe row outranks a safe one. 0.5 = zero discrimination.
+
+    This is the CEILING on what any threshold, prior correction or monotone
+    rescaling can achieve. A model with AUC 0.58 cannot beat a 60-66% majority
+    floor by any choice of cut point, so measuring AUC first tells you whether a
+    threshold problem is even addressable before you spend a run tuning one.
+    """
+    p, y = np.asarray(p, float), np.asarray(y, float)
+    pos, neg = p[y == 1], p[y == 0]
+    if len(pos) == 0 or len(neg) == 0:
+        return 0.5
+    gt = np.sum(pos[:, None] > neg[None, :])
+    eq = np.sum(pos[:, None] == neg[None, :])
+    return float((gt + 0.5 * eq) / (len(pos) * len(neg)))
+
+
 def aurc(p, y):
     """Area under the risk-coverage curve. Lower is better; 0 is perfect."""
     p, y = np.asarray(p, float), np.asarray(y)
@@ -77,6 +94,12 @@ def _logit(p):
     return np.log(p) - np.log1p(-p)
 
 
+#: Public alias. eval_bench needs logit space to apply an intercept, and reaching
+#: for the private `_logit` across module boundaries is what produced a NameError
+#: in the first place -- an eval that died after a completed GPU-hour of training.
+logit = _logit
+
+
 def apply_temperature(p, t):
     """Rescale probabilities by a single temperature."""
     return 1.0 / (1.0 + np.exp(-_logit(p) / float(t)))
@@ -106,7 +129,15 @@ def fit_temperature_info(p, y, lo=TEMP_MIN, hi=TEMP_MAX, step=0.05):
         if nll < best_nll:
             best_t, best_nll = float(t), nll
     at_bound = bool(best_t <= lo + step or best_t >= hi - step)
-    return {"T": best_t, "nll": float(best_nll), "at_bound": at_bound}
+    # Distinguish the two ways to be at a bound. Hitting the ceiling means the
+    # optimum is "as flat as possible": the model's probabilities carry LESS
+    # information than the labels, so T -> infinity and the fitted value is a
+    # truncation, not a measurement. Hitting the floor means they carry more.
+    # Collapsing both into one boolean hid which one was happening.
+    return {"T": best_t, "nll": float(best_nll), "at_bound": at_bound,
+            "at_ceiling": bool(best_t >= hi - step),
+            "at_floor": bool(best_t <= lo + step),
+            "brier": float(np.mean((np.clip(p, 0, 1) - y) ** 2))}
 
 
 def fit_temperature(p, y, lo=TEMP_MIN, hi=TEMP_MAX, step=0.05):
@@ -150,6 +181,7 @@ def summarize(p, y):
         "brier": brier(p, y),
         "ece": ece(p, y),
         "aurc": aurc(p, y),
+        "auc": auc(p, y),
         "cov5": coverage_at(p, y, 0.05)[0],
         "cov10": coverage_at(p, y, 0.10)[0],
         "cov20": coverage_at(p, y, 0.20)[0],

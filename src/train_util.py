@@ -28,6 +28,21 @@ def steps_for(n_examples, batch_size, accum, epochs):
     return int(math.ceil(n_examples / (batch_size * accum) * epochs))
 
 
+def keep_tail(tok):
+    """Make truncation drop the HEAD, not the tail.
+
+    `truncation_side` is a tokenizer ATTRIBUTE, not a keyword to __call__ --
+    passing it as a kwarg raises TypeError from _batch_encode_plus. It must be
+    set once on the tokenizer.
+
+    The action under judgement and the "Answer:" cue are at the end of every
+    prompt, so HuggingFace's default ("right", keep head / drop tail) deletes
+    exactly the part being classified.
+    """
+    tok.truncation_side = "left"
+    return tok
+
+
 def ensure_pad(tok):
     """Give a tokenizer a pad token when it has none.
 

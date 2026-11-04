@@ -8,9 +8,9 @@
 # filesystem.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-HOST="${JEV_HOST:-amarel}"
-SCRATCH="${JEV_SCRATCH:-/scratch/ad2416}"
-N="${JEV_N:-676}"
+HOST="${JANUS_HOST:-amarel}"
+SCRATCH="${JANUS_SCRATCH:-/scratch/ad2416}"
+N="${JANUS_N:-676}"
 
 ssh "$HOST" "cat > $SCRATCH/run_probe.sh <<'SBATCH'
 #!/bin/bash
@@ -22,8 +22,8 @@ ssh "$HOST" "cat > $SCRATCH/run_probe.sh <<'SBATCH'
 #SBATCH --job-name=gprobe
 #SBATCH --exclude=gpuk001,gpuk002,gpuk003,gpuk004,gpuk005,gpuk006,gpuk007,gpuk008,gpuk009,gpuk010,gpuk011,gpuk012,gpuk013,gpuk014,gpuk015,gpuk016,gpuk017,gpuk018
 #SBATCH --output=$SCRATCH/gprobe.out
-export JEV_DATA=$SCRATCH/jevdata
+export JANUS_DATA=$SCRATCH/janusdata
 export HF_HOME=$SCRATCH/hf
-exec $SCRATCH/venv-glimmer/bin/python -u $SCRATCH/jevsrc/glimmer_probe.py --n $N --load-4bit --dump $SCRATCH/gl_zero.npz
+exec $SCRATCH/venv-glimmer/bin/python -u $SCRATCH/janussrc/glimmer_probe.py --n $N --load-4bit --dump $SCRATCH/gl_zero.npz
 SBATCH
 chmod +x $SCRATCH/run_probe.sh && sbatch --parsable $SCRATCH/run_probe.sh"

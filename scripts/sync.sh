@@ -3,15 +3,15 @@
 # directory has a hard ~2GB quota and will silently evict large files.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-HOST="${JEV_HOST:-amarel}"
-SCRATCH="${JEV_SCRATCH:-/scratch/ad2416}"
+HOST="${JANUS_HOST:-amarel}"
+SCRATCH="${JANUS_SCRATCH:-/scratch/ad2416}"
 
-echo "== syncing code -> $HOST:$SCRATCH/jevsrc =="
-ssh "$HOST" "mkdir -p $SCRATCH/jevsrc $SCRATCH/jevdata"
-rsync -az src/ "$HOST:$SCRATCH/jevsrc/"
+echo "== syncing code -> $HOST:$SCRATCH/janussrc =="
+ssh "$HOST" "mkdir -p $SCRATCH/janussrc $SCRATCH/janusdata"
+rsync -az src/ "$HOST:$SCRATCH/janussrc/"
 
-echo "== syncing data -> $HOST:$SCRATCH/jevdata =="
-rsync -az data/swe_*.jsonl data/noul_*.jsonl data/rjudge.jsonl "$HOST:$SCRATCH/jevdata/"
+echo "== syncing data -> $HOST:$SCRATCH/janusdata =="
+rsync -az data/swe_*.jsonl data/noul_*.jsonl data/rjudge.jsonl "$HOST:$SCRATCH/janusdata/"
 
 echo "== remote state =="
-ssh "$HOST" "wc -l $SCRATCH/jevdata/*.jsonl"
+ssh "$HOST" "wc -l $SCRATCH/janusdata/*.jsonl"

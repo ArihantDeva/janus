@@ -40,8 +40,8 @@ from noul import candidates, p_fail_from_pair, target_index  # noqa: E402
 # a helper that reads it from inside main() is an unbound-name bug the scope
 # guard correctly refuses.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-D = os.environ.get("JEV_DATA", os.path.join(ROOT, "data"))
-MODEL = os.environ.get("JEV_MODEL", "meta-models/Muse-Glimmer-30B")
+D = os.environ.get("JANUS_DATA", os.path.join(ROOT, "data"))
+MODEL = os.environ.get("JANUS_MODEL", "meta-models/Muse-Glimmer-30B")
 
 
 def load(split):
@@ -114,7 +114,7 @@ def main():
     ap.add_argument("--lora-r", type=int, default=16)
     ap.add_argument("--lora-alpha", type=int, default=32)
     ap.add_argument("--out", default=os.environ.get(
-        "JEV_OUT", os.path.join(ROOT, "out")))
+        "JANUS_OUT", os.path.join(ROOT, "out")))
     a = ap.parse_args()
     torch.manual_seed(a.seed)
     np.random.seed(a.seed)

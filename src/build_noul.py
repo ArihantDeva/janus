@@ -10,7 +10,7 @@ converse.
 """
 import json, os, random
 
-DATA = os.environ.get("JEV_DATA",
+DATA = os.environ.get("JANUS_DATA",
     os.path.join(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))), "data"))
 SRC = os.path.join(DATA, "rjudge.jsonl")

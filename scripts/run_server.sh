@@ -4,9 +4,9 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=04:00:00
-#SBATCH --job-name=jevsrv
+#SBATCH --job-name=janussrv
 #SBATCH --exclude=gpuk001,gpuk002,gpuk003,gpuk004,gpuk005,gpuk006,gpuk007,gpuk008,gpuk009,gpuk010,gpuk011,gpuk012,gpuk013,gpuk014,gpuk015,gpuk016,gpuk017,gpuk018
-#SBATCH --output=/scratch/ad2416/jevsrv.out
+#SBATCH --output=/scratch/ad2416/janussrv.out
 # Serve the 1B guard over the OpenAI-compatible API that Muse Code speaks
 # (--provider local --base-url). This is the transport the integration is
 # measured against, so it must be the real llama.cpp server, not a shim.

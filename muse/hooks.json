@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "JANUS_BACKEND=${JANUS_BACKEND:-teacher} JANUS_THRESHOLD=${JANUS_THRESHOLD:-0.60} uv run --project \"${JANUS_ROUTER_HOME:-$HOME/jevlab}\" python \"${JANUS_ROUTER_HOME:-$HOME/jevlab}/src/muse_hook.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
